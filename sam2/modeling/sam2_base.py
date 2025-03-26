@@ -10,12 +10,12 @@ import torch.nn.functional as F
 
 from torch.nn.init import trunc_normal_
 
-from sam2.modeling.sam.mask_decoder import MaskDecoder
-from sam2.modeling.sam.prompt_encoder import PromptEncoder
-from sam2.modeling.sam.transformer import TwoWayTransformer
-from sam2.modeling.sam2_utils import get_1d_sine_pe, MLP, select_closest_cond_frames
+from .sam.mask_decoder import MaskDecoder
+from .sam.prompt_encoder import PromptEncoder
+from .sam.transformer import TwoWayTransformer
+from .sam2_utils import get_1d_sine_pe, MLP, select_closest_cond_frames
 
-from sam2.utils.kalman_filter import KalmanFilter
+from ..utils.kalman_filter import KalmanFilter
 
 # a large negative value as a placeholder score for missing objects
 NO_OBJ_SCORE = -1024.0
@@ -96,7 +96,7 @@ class SAM2Base(torch.nn.Module):
         sam_mask_decoder_extra_args=None,
         compile_image_encoder: bool = False,
         # Whether to use SAMURAI or original SAM 2
-        samurai_mode: bool = False,
+        samurai_mode: bool = True,
         # Hyperparameters for SAMURAI
         stable_frames_threshold: int = 15,
         stable_ious_threshold: float = 0.3,

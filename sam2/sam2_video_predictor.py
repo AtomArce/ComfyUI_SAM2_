@@ -612,6 +612,7 @@ class SAM2VideoPredictor(SAM2Base):
                         reverse=reverse,
                         run_mem_encoder=True,
                     )
+                
                     obj_output_dict[storage_key][frame_idx] = current_out
 
                 inference_state["frames_tracked_per_obj"][obj_idx][frame_idx] = {
@@ -782,6 +783,9 @@ class SAM2VideoPredictor(SAM2Base):
             maskmem_features = maskmem_features.to(torch.bfloat16)
             maskmem_features = maskmem_features.to(storage_device, non_blocking=True)
         pred_masks_gpu = current_out["pred_masks"]
+
+
+
         # potentially fill holes in the predicted masks
         if self.fill_hole_area > 0:
             pred_masks_gpu = fill_holes_in_mask_scores(
@@ -795,6 +799,11 @@ class SAM2VideoPredictor(SAM2Base):
         object_score_logits = current_out["object_score_logits"]
         best_iou_score = current_out["best_iou_score"]
         best_kf_score = current_out["kf_ious"]
+
+        # print(f"[DEBUG] object_score_logits: {object_score_logits}")
+        # print(f"[DEBUG] best_iou_score: {best_iou_score}")
+        # print(f"[DEBUG] best_kf_score: {best_kf_score}")
+
         # make a compact version of this frame's output to reduce the state size
         compact_current_out = {
             "maskmem_features": maskmem_features,
