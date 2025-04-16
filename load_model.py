@@ -11,15 +11,19 @@ from .sam2.modeling.memory_encoder import MemoryEncoder, MaskDownSampler, Fuser,
 from .sam2.sam2_image_predictor import SAM2ImagePredictor
 from .sam2.sam2_video_predictor import SAM2VideoPredictor
 from .sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
+from .sam2.custom_video_predictor import CustomVideoPredictor
 from comfy.utils import load_torch_file
 
-def load_model(model_path, model_cfg_path, segmentor, dtype, device):
+def load_model(model_path, model_cfg_path, segmentor, dtype, device, image_size=None):
     # Load the YAML configuration
     with open(model_cfg_path, 'r') as file:
         config = yaml.safe_load(file)
 
     # Extract the model configuration
     model_config = config['model']
+
+    if segmentor == "custom_video":
+        model_config["image_size"] = image_size
 
     # Instantiate the image encoder components
     trunk_config = model_config['image_encoder']['trunk']
@@ -137,7 +141,7 @@ def load_model(model_path, model_cfg_path, segmentor, dtype, device):
         "dynamic_multimask_stability_thresh": 0.98,
     }
 
-    def initialize_model(model_class, model_config, segmentor, image_encoder, memory_attention, memory_encoder, sam_mask_decoder_extra_args, dtype, device):
+    def initialize_model(model_class, model_config, segmentor, image_encoder, memory_attention, memory_encoder, sam_mask_decoder_extra_args, dtype, device, image_size):
         return model_class(
             image_encoder=image_encoder,
             memory_attention=memory_attention,
@@ -176,19 +180,22 @@ def load_model(model_path, model_cfg_path, segmentor, dtype, device):
     # Initialize model based on segmentor type
     if segmentor == 'single_image':
         model_class = SAM2Base
-        model = initialize_model(model_class, model_config, segmentor, image_encoder, memory_attention, memory_encoder, sam_mask_decoder_extra_args, dtype, device)
+        model = initialize_model(model_class, model_config, segmentor, image_encoder, memory_attention, memory_encoder, sam_mask_decoder_extra_args, dtype, device, image_size)
         model.load_state_dict(sd)
         model = SAM2ImagePredictor(model)
     elif segmentor == 'video':
         model_class = SAM2VideoPredictor
-        model = initialize_model(model_class, model_config, segmentor, image_encoder, memory_attention, memory_encoder, sam_mask_decoder_extra_args, dtype, device)
+        model = initialize_model(model_class, model_config, segmentor, image_encoder, memory_attention, memory_encoder, sam_mask_decoder_extra_args, dtype, device, image_size)
         model.load_state_dict(sd)
     elif segmentor == 'automaskgenerator':
         model_class = SAM2Base
-        model = initialize_model(model_class, model_config, segmentor, image_encoder, memory_attention, memory_encoder, sam_mask_decoder_extra_args, dtype, device)
+        model = initialize_model(model_class, model_config, segmentor, image_encoder, memory_attention, memory_encoder, sam_mask_decoder_extra_args, dtype, device, image_size)
         model.load_state_dict(sd)
         model = SAM2AutomaticMaskGenerator(model)
+    elif segmentor == "custom_video":
+        model_class = CustomVideoPredictor
+        model = initialize_model(model_class, model_config, segmentor, image_encoder, memory_attention, memory_encoder, sam_mask_decoder_extra_args, dtype, device,image_size)
+        model.load_state_dict(sd)
     else:
         raise ValueError(f"Segmentor {segmentor} not supported")
-
     return model

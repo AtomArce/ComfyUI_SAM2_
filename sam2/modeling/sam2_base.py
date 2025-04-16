@@ -225,7 +225,7 @@ class SAM2Base(torch.nn.Module):
             )
             self.image_encoder.forward = torch.compile(
                 self.image_encoder.forward,
-                mode="max-autotune",
+                mode=" max-autotune",
                 fullgraph=True,
                 dynamic=False,
             )
@@ -478,7 +478,7 @@ class SAM2Base(torch.nn.Module):
                     sam_output_token = sam_output_tokens[batch_inds, best_iou_inds]
 
                 if False:
-                    # make all these on cpu                        
+                    # make all these on cpu
                     self.history[self.frame_cnt] = {
                         "kf_predicted_bbox": self.kf.xyah_to_xyxy(self.kf_mean[:4]),
                         # "multi_masks": high_res_multimasks.cpu(),
@@ -659,7 +659,7 @@ class SAM2Base(torch.nn.Module):
             stride = 1 if self.training else self.memory_temporal_stride_for_eval
 
             if self.samurai_mode:
-                valid_indices = [] 
+                valid_indices = []
                 if frame_idx > 1:  # Ensure we have previous frames to evaluate
                     for i in range(frame_idx - 1, 1, -1):  # Iterate backwards through previous frames
                         iou_score = output_dict["non_cond_frame_outputs"][i]["best_iou_score"]  # Get mask affinity score
@@ -669,11 +669,11 @@ class SAM2Base(torch.nn.Module):
                         if iou_score.item() > self.memory_bank_iou_threshold and \
                            obj_score.item() > self.memory_bank_obj_score_threshold and \
                            (kf_score is None or kf_score.item() > self.memory_bank_kf_score_threshold):
-                            valid_indices.insert(0, i)  
+                            valid_indices.insert(0, i)
                         # Check the number of valid indices
-                        if len(valid_indices) >= self.max_obj_ptrs_in_encoder - 1:  
+                        if len(valid_indices) >= self.max_obj_ptrs_in_encoder - 1:
                             break
-                if frame_idx - 1 not in valid_indices: 
+                if frame_idx - 1 not in valid_indices:
                     valid_indices.append(frame_idx - 1)
                 for t_pos in range(1, self.num_maskmem):  # Iterate over the number of mask memories
                     idx = t_pos - self.num_maskmem  # Calculate the index for valid indices

@@ -46,16 +46,27 @@ class SAM2VideoPredictor(SAM2Base):
         offload_video_to_cpu=False,
         offload_state_to_cpu=False,
         async_loading_frames=False,
+        file_type ="tensor"
     ):
         """Initialize an inference state."""
         compute_device = self.device  # device of the model
-        images, video_height, video_width = load_video_frames(
-            video_path=video_path,
-            image_size=self.image_size,
-            offload_video_to_cpu=offload_video_to_cpu,
-            async_loading_frames=async_loading_frames,
-            compute_device=compute_device,
-        )
+        if file_type =="tensor":
+            # Use the tensor input directly.
+            images = video_path
+            if images.dim() != 4:
+                raise ValueError("Expected tensor input to be 4D with shape [num_frames, C, H, W]")
+            video_height = images.shape[2]
+            video_width = images.shape[3]
+        else:
+            # Load video frames from disk using the existing load_video_frames() function.
+            images, video_height, video_width = load_video_frames(
+                video_path=video_path,
+                image_size=self.image_size,
+                offload_video_to_cpu=offload_video_to_cpu,
+                async_loading_frames=async_loading_frames,
+                compute_device=compute_device,
+            )
+
         inference_state = {}
         inference_state["images"] = images
         inference_state["num_frames"] = len(images)
@@ -480,7 +491,7 @@ class SAM2VideoPredictor(SAM2Base):
     @torch.inference_mode()
     def propagate_in_video_preflight(self, inference_state):
         """Prepare inference_state and consolidate temporary outputs before tracking."""
-        # Check and make sure that every object has received input points or masks.
+        # Check and make sure that every object has received input   points or masks.
         batch_size = self._get_obj_num(inference_state)
         if batch_size == 0:
             raise RuntimeError(
@@ -612,7 +623,7 @@ class SAM2VideoPredictor(SAM2Base):
                         reverse=reverse,
                         run_mem_encoder=True,
                     )
-                
+
                     obj_output_dict[storage_key][frame_idx] = current_out
 
                 inference_state["frames_tracked_per_obj"][obj_idx][frame_idx] = {
@@ -799,10 +810,6 @@ class SAM2VideoPredictor(SAM2Base):
         object_score_logits = current_out["object_score_logits"]
         best_iou_score = current_out["best_iou_score"]
         best_kf_score = current_out["kf_ious"]
-
-        # print(f"[DEBUG] object_score_logits: {object_score_logits}")
-        # print(f"[DEBUG] best_iou_score: {best_iou_score}")
-        # print(f"[DEBUG] best_kf_score: {best_kf_score}")
 
         # make a compact version of this frame's output to reduce the state size
         compact_current_out = {
